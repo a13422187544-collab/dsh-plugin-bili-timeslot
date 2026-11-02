@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-bili-timeslot",
-  "version": "1.0.0",
+  "version": "1.0.5",
   "description": "B站三连推广投放时段批量设置：1.0 拉空（清空时段=不投放）、2.0 拉时段（按星期/小时，SKU 驱动）。其他推广人装完即可用 /timeslot 命令。",
   "type": "module",
   "main": "./lib/index.js",
