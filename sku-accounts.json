@@ -6,11 +6,14 @@
     "accounts 里刻意留空：正式匹配账户由用户后续提供，不要用测试账户硬编码。",
     "version: 1.0（只能拉空）/ 2.0（必须指定时段）",
     "days: 1=周一 … 7=周日；hours: 左闭右开，6-18 = 06:00 到 18:00 整，0-24 = 全天",
-    "用法：node set-timeslot-2.0-fast.mjs --sku=AI绘画 --dry"
+    "用法：node set-timeslot-2.0-fast.mjs --sku=AI绘画 --dry",
+    "原画只用「原画」一个关键词；不要用「绘画」，否则会误命中「AI绘画」账户。"
   ],
   "建模": {
     "version": "2.0",
-    "keywords": ["建模"],
+    "keywords": [
+      "建模"
+    ],
     "client": "中教",
     "accounts": [],
     "days": "1,2,3,4,5",
@@ -18,7 +21,9 @@
   },
   "原画": {
     "version": "2.0",
-    "keywords": ["原画", "绘画"],
+    "keywords": [
+      "原画"
+    ],
     "client": "中教",
     "accounts": [],
     "days": "1,2,3,4,5",
@@ -26,7 +31,9 @@
   },
   "AI绘画": {
     "version": "2.0",
-    "keywords": ["AI绘画"],
+    "keywords": [
+      "AI绘画"
+    ],
     "client": "启职",
     "accounts": [],
     "days": "1,2,3,4,5",
@@ -34,7 +41,10 @@
   },
   "AI视频": {
     "version": "2.0",
-    "keywords": ["AI视频", "AI漫剧"],
+    "keywords": [
+      "AI视频",
+      "AI漫剧"
+    ],
     "client": "海豚",
     "accounts": [],
     "days": "1,2,3,4,5",
@@ -42,7 +52,9 @@
   },
   "AI写作": {
     "version": "2.0",
-    "keywords": ["AI写作"],
+    "keywords": [
+      "AI写作"
+    ],
     "client": "喜马拉雅",
     "accounts": [],
     "days": "1,2,3,4,5",
