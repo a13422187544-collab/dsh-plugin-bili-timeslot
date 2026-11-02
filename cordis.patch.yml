@@ -1,0 +1,5 @@
+# cordis.patch.yml — B站投放时段插件
+# 行名 = 真实包名；安装后由 profile 的 cordis.yml 从 <profile>/node_modules/<name> 解析
+- insert:
+    - id: bili-timeslot
+      name: 'dsh-plugin-bili-timeslot'
