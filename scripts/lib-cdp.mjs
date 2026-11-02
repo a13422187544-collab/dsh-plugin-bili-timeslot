@@ -79,3 +79,109 @@ export function parseArgs(argv = process.argv.slice(2)) {
 }
 
 export const ACCOUNTS = (s) => String(s || "").split(",").map((x) => x.trim()).filter(Boolean);
+
+/* ------------------------------------------------------------------
+ * 分页收集：列表页每页最多 100 条，几百条的对象必须翻页取全量
+ * ------------------------------------------------------------------ */
+
+/** 读分页信息：页面「共 N 条」、当前页、最大页码 */
+export const PAGER_INFO_EXPR =
+  "(() => {" +
+  " const t = document.body.innerText || '';" +
+  " const m = /共\\s*(\\d+)\\s*条/.exec(t);" +
+  " const pager = document.querySelector('.bd-pagination, .ivu-page, [class*=\"pagination\"]');" +
+  " let maxPage = null, cur = null;" +
+  " if (pager) {" +
+  "  const nums = [...pager.querySelectorAll('li, button, a, span')]" +
+  "    .map(e => (e.innerText || '').trim()).filter(s => /^\\d+$/.test(s)).map(Number);" +
+  "  if (nums.length) maxPage = Math.max(...nums);" +
+  "  const act = pager.querySelector('.active, .ivu-page-item-active, [class*=\"active\"]');" +
+  "  if (act) { const n = Number((act.innerText || '').trim()); if (Number.isFinite(n)) cur = n; }" +
+  " }" +
+  " return { total: m ? Number(m[1]) : null, maxPage, cur };" +
+  "})()";
+
+/** 点「下一页」：多套选择器兜底；成功返回 true */
+export const CLICK_NEXT_EXPR =
+  "(() => {" +
+  " const sels = ['.ivu-page-next', '.bd-pagination__next', '.bd-pager-next', '.el-pagination .btn-next'," +
+  "  'button[aria-label=\"next\"]', '[class*=\"pagination\"] [class*=\"next\"]', '[class*=\"pager\"] [class*=\"next\"]'];" +
+  " for (const sel of sels) {" +
+  "  for (const el of document.querySelectorAll(sel)) {" +
+  "   const cls = String(el.className || '');" +
+  "   if (/disabled/i.test(cls) || el.disabled) continue;" +
+  "   const r = el.getBoundingClientRect(); if (r.width === 0 || r.height === 0) continue;" +
+  "   el.click(); return true;" +
+  "  }" +
+  " }" +
+  " return false;" +
+  "})()";
+
+/** 按页码跳转；成功返回 true */
+export const gotoPageExpr = (n) =>
+  "(() => {" +
+  " const pager = document.querySelector('.bd-pagination, .ivu-page, [class*=\"pagination\"]');" +
+  " if (!pager) return false;" +
+  " const cand = [...pager.querySelectorAll('li, button, a, span')]" +
+  "   .find(e => (e.innerText || '').trim() === '" + n + "');" +
+  " if (!cand) return false;" +
+  " cand.click(); return true;" +
+  "})()";
+
+/**
+ * 翻页收集全部行（按 keyOf 去重）
+ * @returns { rows, pageTotal, pagesVisited, complete }
+ */
+export async function collectAllRows(ev, opts) {
+  const { readExpr, maxPages = 80 } = opts;
+  const keyOf = opts.keyOf || ((r) => r.id || r.pid);
+  const sleepFn = opts.sleepFn || sleep;
+  const log = opts.log || (() => {});
+
+  const seen = new Map();
+  let pageTotal = null;
+
+  const info0 = await ev(PAGER_INFO_EXPR);
+  if (info0 && info0.total) pageTotal = info0.total;
+
+  for (const r of await ev(readExpr)) {
+    const k = keyOf(r);
+    if (k && !seen.has(k)) seen.set(k, r);
+  }
+  let pages = 1;
+
+  const maxPage = info0 && info0.maxPage ? Math.min(info0.maxPage, maxPages) : maxPages;
+
+  while (pages < maxPage) {
+    const nextPage = pages + 1;
+    let ok = await ev(gotoPageExpr(nextPage));
+    if (!ok) ok = await ev(CLICK_NEXT_EXPR);
+    if (!ok) break;
+
+    const sig = [...seen.keys()].slice(0, 3).join("|");
+    let changed = false;
+    for (let i = 0; i < 12; i++) {
+      await sleepFn(500);
+      const rows = await ev(readExpr);
+      const newSig = rows.slice(0, 3).map(keyOf).join("|");
+      if (rows.length && newSig && newSig !== sig) { changed = true; break; }
+    }
+    if (!changed) { log("第 " + nextPage + " 页无变化，停止翻页"); break; }
+
+    const rows = await ev(readExpr);
+    for (const r of rows) {
+      const k = keyOf(r);
+      if (k && !seen.has(k)) seen.set(k, r);
+    }
+    pages = nextPage;
+    if (pageTotal && seen.size >= pageTotal) break;
+  }
+
+  return {
+    rows: [...seen.values()],
+    pageTotal,
+    pagesVisited: pages,
+    complete: pageTotal ? seen.size >= pageTotal : true,
+  };
+}
+
